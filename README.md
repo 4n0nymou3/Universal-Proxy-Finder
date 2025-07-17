@@ -19,12 +19,12 @@ You can use these links in your preferred client application (like v2rayNG, Neko
 
 ### V2Ray Subscription Link:
 ```
-https://raw.githubusercontent.com/imegabiz/Universal-Proxy-Finder/master/Output/v2ray_subscription.txt
+https://raw.githubusercontent.com/4n0nymou3/Universal-Proxy-Finder/master/Output/v2ray_subscription.txt
 ```
 
 ### Sing-box Subscription Link:
 ```
-https://raw.githubusercontent.com/imegabiz/Universal-Proxy-Finder/master/Output/singbox_subscription.json
+https://raw.githubusercontent.com/4n0nymou3/Universal-Proxy-Finder/master/Output/singbox_subscription.json
 ```
 
 > **Note**: Replace `YOUR_USERNAME` with your actual GitHub username after forking this repository.
