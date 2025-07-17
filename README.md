@@ -11,7 +11,7 @@ This repository is designed to be fully automated using GitHub Actions. It fetch
 3.  **Format**: Renames working proxies with a clear convention: `Anonymous-FLAG-COUNTRYCODE-PROTOCOL-INDEX`.
 4.  **Deploy**: Commits the final subscription files to the repository.
 
-This entire process runs automatically every 24 hours.
+This entire process runs automatically every 12 hours.
 
 ## Subscription Links
 
