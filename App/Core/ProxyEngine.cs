@@ -8,10 +8,17 @@ using SingBoxLib.Runtime;
 using SingBoxLib.Runtime.Testing;
 using System.Collections.Concurrent;
 using System.Text;
+using System.Text.Json;
 using UniversalProxyFinder.Config;
 using UniversalProxyFinder.Models;
 
 namespace UniversalProxyFinder.Core;
+
+public sealed class FinalProfile
+{
+    public required ProfileItem Profile { get; init; }
+    public required string UniqueName { get; init; }
+}
 
 public sealed class ProxyEngine
 {
@@ -34,7 +41,7 @@ public sealed class ProxyEngine
 
         var initialCount = collectedProfiles.Count;
         collectedProfiles = collectedProfiles
-            .Where(p => !(p.Type == ProfileType.Shadowsocks && p.Plugin == "tcp"))
+            .Where(p => !(p.Type == ProfileType.Shadowsocks && (p.Plugin == "tcp" || p.Plugin == "")))
             .ToList();
         var filteredCount = initialCount - collectedProfiles.Count;
         if (filteredCount > 0)
@@ -142,7 +149,7 @@ public sealed class ProxyEngine
             .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
     }
 
-    private async Task<List<ProfileItem>> FormatAndSortResultsAsync(IReadOnlyCollection<UrlTestResult> workingResults)
+    private async Task<List<FinalProfile>> FormatAndSortResultsAsync(IReadOnlyCollection<UrlTestResult> workingResults)
     {
         var geoLocatedResults = new List<(UrlTestResult TestResult, CountryInfo CountryInfo)>();
         foreach (var result in workingResults)
@@ -163,20 +170,20 @@ public sealed class ProxyEngine
                 var countryInfo = p.CountryInfo;
                 var randomId = GenerateRandomId();
                 
-                profile.Name = $"Anonymous-{countryInfo.CountryFlag}-{countryInfo.CountryCode}-{profile.Type.ToString().ToLower()}-{randomId}";
+                var uniqueName = $"Anonymous-{countryInfo.CountryFlag}-{countryInfo.CountryCode}-{profile.Type.ToString().ToLower()}-{randomId}";
                 
-                return profile;
+                return new FinalProfile { Profile = profile, UniqueName = uniqueName };
             })
             .Take(200)
             .ToList();
     }
 
-    private async Task CommitResultsToGithubAsync(List<ProfileItem> profiles)
+    private async Task CommitResultsToGithubAsync(List<FinalProfile> profiles)
     {
         var v2raySubscription = new StringBuilder();
-        foreach (var profile in profiles)
+        foreach (var finalProfile in profiles)
         {
-            v2raySubscription.AppendLine(profile.ToProfileUrl());
+            v2raySubscription.AppendLine(finalProfile.Profile.ToProfileUrl());
         }
 
         await UploadFileAsync(_settings.V2rayResultPath, v2raySubscription.ToString());
@@ -185,22 +192,22 @@ public sealed class ProxyEngine
         await UploadFileAsync(_settings.SingboxResultPath, singboxConfig.ToJson());
     }
 
-    private SingBoxConfig CreateSingboxConfig(List<ProfileItem> profiles)
+    private SingBoxConfig CreateSingboxConfig(List<FinalProfile> profiles)
     {
-        var outbounds = new List<OutboundConfig>(profiles.Count);
-        foreach (var profile in profiles)
+        var outbounds = new List<OutboundConfig>();
+        foreach (var finalProfile in profiles)
         {
-            var outbound = profile.ToOutboundConfig();
-            outbound.Tag = profile.Name;
+            var outbound = finalProfile.Profile.ToOutboundConfig();
+            outbound.Tag = finalProfile.UniqueName;
             outbounds.Add(outbound);
         }
 
-        var allTags = profiles.Select(p => p.Name!).ToList();
+        var allTags = outbounds.Select(p => p.Tag).Where(t => !string.IsNullOrEmpty(t)).ToList();
 
         var autoGroup = new UrlTestOutbound
         {
             Tag = "auto",
-            Outbounds = allTags,
+            Outbounds = allTags!,
             Interval = "10m",
             Tolerance = 200,
             Url = "https://www.youtube.com/generate_204"
@@ -209,7 +216,7 @@ public sealed class ProxyEngine
         var selectorGroup = new SelectorOutbound
         {
             Tag = "select",
-            Outbounds = ["auto", ..allTags],
+            Outbounds = ["auto", ..allTags!],
             Default = "auto"
         };
         
