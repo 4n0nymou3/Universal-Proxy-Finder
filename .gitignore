@@ -1,0 +1,31 @@
+# User-specific files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Build results
+[Dd]ebug/
+[Rr]elease/
+bld/
+[Bb]in/
+[Oo]bj/
+[Oo]ut/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio
+.vs/
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+project.lock.json
+artifacts/
+
+# Packages
+**/[Pp]ackages/*
+!**/[Pp]ackages/build/
+
+# Secrets
+/App/Properties/launchSettings.json
