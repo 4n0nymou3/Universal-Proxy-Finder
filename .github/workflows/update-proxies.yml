@@ -14,7 +14,7 @@ jobs:
       GITHUB_USER: ${{ github.repository_owner }}
       GITHUB_REPO: Universal-Proxy-Finder
       PROXY_SOURCES_URL: |
-        https://raw.githubusercontent.com/imegabiz/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt
+        https://raw.githubusercontent.com/4n0nymou3/multi-proxy-config-fetcher/refs/heads/main/configs/proxy_configs.txt
         https://raw.githubusercontent.com/mahsanet/MahsaFreeConfig/main/mtn/sub_1.txt
         https://raw.githubusercontent.com/mahsanet/MahsaFreeConfig/main/mci/sub_1.txt
         https://raw.githubusercontent.com/mahsanet/MahsaFreeConfig/main/mtn/sub_2.txt
