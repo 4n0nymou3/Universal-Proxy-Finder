@@ -27,6 +27,7 @@ jobs:
         https://raw.githubusercontent.com/mahdibland/ShadowsocksAggregator/master/Eternity.txt
         https://raw.githubusercontent.com/SoliSpirit/v2ray-configs/refs/heads/main/all_configs.txt
         https://raw.githubusercontent.com/itsyebekhe/PSG/main/lite/subscriptions/xray/normal/mix
+        https://raw.githubusercontent.com/itsyebekhe/PSG/main/subscriptions/xray/base64/mix
         https://raw.githubusercontent.com/aiboboxx/v2rayfree/main/v2
         https://raw.githubusercontent.com/MrMohebi/xray-proxy-grabber-telegram/master/collected-proxies/row-url/all.txt
         https://raw.githubusercontent.com/Mohammadgb0078/IRV2ray/main/vless.txt
