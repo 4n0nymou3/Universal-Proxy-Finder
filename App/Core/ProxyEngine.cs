@@ -14,12 +14,6 @@ using UniversalProxyFinder.Models;
 
 namespace UniversalProxyFinder.Core;
 
-public sealed class FinalProfile
-{
-    public required ProfileItem Profile { get; init; }
-    public required string UniqueName { get; init; }
-}
-
 public sealed class ProxyEngine
 {
     private readonly AppSettings _settings;
@@ -38,16 +32,6 @@ public sealed class ProxyEngine
 
         var collectedProfiles = (await CollectProfilesAsync()).DistinctBy(p => p.ToProfileUrl()).ToList();
         Log($"Collected {collectedProfiles.Count} unique profiles in total.");
-
-        var initialCount = collectedProfiles.Count;
-        collectedProfiles = collectedProfiles
-            .Where(p => !(p.Type == ProfileType.Shadowsocks && (p.Plugin == "tcp" || p.Plugin == "")))
-            .ToList();
-        var filteredCount = initialCount - collectedProfiles.Count;
-        if (filteredCount > 0)
-        {
-            Log($"Filtered out {filteredCount} profiles with unsupported plugins.");
-        }
 
         var workingResults = await TestProfilesAsync(collectedProfiles);
         Log($"Testing finished, found {workingResults.Count} working profiles.");
@@ -142,14 +126,7 @@ public sealed class ProxyEngine
         return workingResults;
     }
 
-    private static string GenerateRandomId(int length = 8)
-    {
-        const string chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-        return new string(Enumerable.Repeat(chars, length)
-            .Select(s => s[Random.Shared.Next(s.Length)]).ToArray());
-    }
-
-    private async Task<List<FinalProfile>> FormatAndSortResultsAsync(IReadOnlyCollection<UrlTestResult> workingResults)
+    private async Task<List<ProfileItem>> FormatAndSortResultsAsync(IReadOnlyCollection<UrlTestResult> workingResults)
     {
         var geoLocatedResults = new List<(UrlTestResult TestResult, CountryInfo CountryInfo)>();
         foreach (var result in workingResults)
@@ -162,28 +139,29 @@ public sealed class ProxyEngine
         }
     
         return geoLocatedResults
-            .OrderBy(p => p.CountryInfo.CountryCode)
-            .ThenBy(p => p.TestResult.Delay)
-            .Select(p =>
-            {
-                var profile = p.TestResult.Profile;
-                var countryInfo = p.CountryInfo;
-                var randomId = GenerateRandomId();
-                
-                var uniqueName = $"Anonymous-{countryInfo.CountryFlag}-{countryInfo.CountryCode}-{profile.Type.ToString().ToLower()}-{randomId}";
-                
-                return new FinalProfile { Profile = profile, UniqueName = uniqueName };
-            })
+            .GroupBy(p => p.CountryInfo.CountryCode)
+            .Select(countryGroup => countryGroup
+                .OrderBy(p => p.TestResult.Delay)
+                .WithIndex()
+                .Select(indexedProfile =>
+                {
+                    var profile = indexedProfile.Item.TestResult.Profile;
+                    var countryInfo = indexedProfile.Item.CountryInfo;
+                    profile.Name = $"{countryInfo.CountryFlag} {countryInfo.CountryCode} {indexedProfile.Index + 1}";
+                    return profile;
+                })
+            )
+            .SelectMany(group => group)
             .Take(200)
             .ToList();
     }
 
-    private async Task CommitResultsToGithubAsync(List<FinalProfile> profiles)
+    private async Task CommitResultsToGithubAsync(List<ProfileItem> profiles)
     {
         var v2raySubscription = new StringBuilder();
-        foreach (var finalProfile in profiles)
+        foreach (var profile in profiles)
         {
-            v2raySubscription.AppendLine(finalProfile.Profile.ToProfileUrl());
+            v2raySubscription.AppendLine(profile.ToProfileUrl());
         }
 
         await UploadFileAsync(_settings.V2rayResultPath, v2raySubscription.ToString());
@@ -192,13 +170,13 @@ public sealed class ProxyEngine
         await UploadFileAsync(_settings.SingboxResultPath, singboxConfig.ToJson());
     }
 
-    private SingBoxConfig CreateSingboxConfig(List<FinalProfile> profiles)
+    private SingBoxConfig CreateSingboxConfig(List<ProfileItem> profiles)
     {
         var outbounds = new List<OutboundConfig>();
-        foreach (var finalProfile in profiles)
+        foreach (var profile in profiles)
         {
-            var outbound = finalProfile.Profile.ToOutboundConfig();
-            outbound.Tag = finalProfile.UniqueName;
+            var outbound = profile.ToOutboundConfig();
+            outbound.Tag = profile.Name;
             outbounds.Add(outbound);
         }
 
@@ -296,5 +274,17 @@ public sealed class ProxyEngine
     private void Log(string message)
     {
         Console.WriteLine($"[{DateTime.Now:HH:mm:ss}] - {message}");
+    }
+}
+
+public static class HelperExtensions
+{
+    public static IEnumerable<(int Index, T Item)> WithIndex<T>(this IEnumerable<T> items)
+    {
+        int index = 0;
+        foreach (var item in items)
+        {
+            yield return (index++, item);
+        }
     }
 }
