@@ -202,26 +202,26 @@ public sealed class ProxyEngine
             outbounds.Add(outbound);
         }
 
-        var allTags = profiles.Select(p => p.Name).Where(t => !string.IsNullOrEmpty(t)).ToList();
-
-        var autoGroup = new UrlTestOutbound
-        {
-            Tag = "auto",
-            Outbounds = allTags!,
-            Interval = "10m",
-            Tolerance = 200,
-            Url = "https://www.youtube.com/generate_204"
-        };
+        var allTags = profiles.Select(p => p.Name!).ToList();
 
         var selectorGroup = new SelectorOutbound
         {
             Tag = "selector",
-            Outbounds = ["auto", ..allTags!],
+            Outbounds = ["auto", ..allTags],
             Default = "auto"
         };
         
-        outbounds.Add(autoGroup);
+        var urlTestGroup = new UrlTestOutbound
+        {
+            Tag = "auto",
+            Outbounds = allTags,
+            Interval = "10m",
+            Tolerance = 200,
+            Url = "https://www.youtube.com/generate_204"
+        };
+        
         outbounds.Add(selectorGroup);
+        outbounds.Add(urlTestGroup);
 
         return new SingBoxConfig
         {
@@ -246,7 +246,7 @@ public sealed class ProxyEngine
             ],
             Route = new()
             {
-                Final = "selector-out",
+                Final = "selector",
                 AutoDetectInterface = true,
             }
         };
