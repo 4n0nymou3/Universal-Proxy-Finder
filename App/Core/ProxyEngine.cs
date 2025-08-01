@@ -144,8 +144,14 @@ public sealed class ProxyEngine
 
     private async Task<List<ProfileItem>> FormatAndSortResultsAsync(IReadOnlyCollection<UrlTestResult> workingResults)
     {
+        var uniqueBestResults = workingResults
+            .GroupBy(r => (r.Profile.Address, r.Profile.Port, r.Profile.Id, r.Profile.Password))
+            .Select(g => g.OrderBy(r => r.Delay).First());
+
+        Log($"Filtered {workingResults.Count} working profiles down to {uniqueBestResults.Count()} truly unique servers.");
+
         var geoLocatedResults = new List<(UrlTestResult TestResult, CountryInfo CountryInfo)>();
-        foreach (var result in workingResults)
+        foreach (var result in uniqueBestResults)
         {
             var countryInfo = await _geoLocator.GetCountryAsync(result.Profile.Address!);
             if (countryInfo is not null && !string.IsNullOrWhiteSpace(countryInfo.CountryCode) && countryInfo.CountryCode != "Unknown")
