@@ -37,13 +37,11 @@ public sealed class ProxyEngine
         {
             try
             {
-                // Attempt the operation that might crash
                 profile.ToProfileUrl();
                 safeProfiles.Add(profile);
             }
             catch (NotImplementedException)
             {
-                // A new, unsupported protocol was found. Log it and ignore it.
                 Log($"Ignoring a profile with an unsupported type: {profile.Type}");
             }
         }
