@@ -30,8 +30,26 @@ public sealed class ProxyEngine
         var startTime = DateTime.Now;
         Log("Engine started.");
 
-        var collectedProfiles = (await CollectProfilesAsync()).DistinctBy(p => p.ToProfileUrl()).ToList();
-        Log($"Collected {collectedProfiles.Count} unique profiles in total.");
+        var allCollectedProfiles = await CollectProfilesAsync();
+
+        var safeProfiles = new List<ProfileItem>();
+        foreach (var profile in allCollectedProfiles)
+        {
+            try
+            {
+                // Attempt the operation that might crash
+                profile.ToProfileUrl();
+                safeProfiles.Add(profile);
+            }
+            catch (NotImplementedException)
+            {
+                // A new, unsupported protocol was found. Log it and ignore it.
+                Log($"Ignoring a profile with an unsupported type: {profile.Type}");
+            }
+        }
+        
+        var collectedProfiles = safeProfiles.DistinctBy(p => p.ToProfileUrl()).ToList();
+        Log($"Collected {collectedProfiles.Count} unique and supported profiles in total.");
 
         var workingResults = await TestProfilesAsync(collectedProfiles);
         Log($"Testing finished, found {workingResults.Count} working profiles.");
@@ -180,7 +198,7 @@ public sealed class ProxyEngine
             outbounds.Add(outbound);
         }
 
-        var allTags = outbounds.Select(p => p.Tag).Where(t => !string.IsNullOrEmpty(t)).ToList();
+        var allTags = profiles.Select(p => p.Name).Where(t => !string.IsNullOrEmpty(t)).ToList();
 
         var autoGroup = new UrlTestOutbound
         {
@@ -193,7 +211,7 @@ public sealed class ProxyEngine
 
         var selectorGroup = new SelectorOutbound
         {
-            Tag = "select",
+            Tag = "selector",
             Outbounds = ["auto", ..allTags!],
             Default = "auto"
         };
@@ -224,7 +242,7 @@ public sealed class ProxyEngine
             ],
             Route = new()
             {
-                Final = "select",
+                Final = "selector-out",
                 AutoDetectInterface = true,
             }
         };
@@ -236,7 +254,7 @@ public sealed class ProxyEngine
         {
             Credentials = new Credentials(_settings.GithubToken)
         };
-        
+
         string? sha = null;
         try
         {
